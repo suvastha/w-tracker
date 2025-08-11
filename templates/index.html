@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weight Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(-45deg, #e0e7ff, #c7d2fe, #d1fae5, #bfdbfe);
+            background-size: 400% 400%;
+            animation: gradientAnimation 25s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transform-origin: center;
+        }
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        .filter-btn {
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            border: 2px solid transparent;
+            color: #4a5568;
+        }
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            color: #1e40af;
+        }
+        .filter-btn.active {
+            background: #1e40af;
+            color: #fff;
+            border-color: #1e40af;
+            box-shadow: 0 4px 10px rgba(30, 64, 175, 0.3);
+        }
+        .achievement-container {
+            display: flex;
+            transition: transform 0.3s ease-in-out;
+            width: 100%; /* Ensure container takes full width */
+        }
+        .achievement-card {
+            flex: 0 0 20%; /* Show 5 cards per view */
+            padding: 0 8px; /* Add some spacing between cards */
+            box-sizing: border-box;
+        }
+        /* Custom progress bar styles */
+        .progress-bar {
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #2563eb, #3b82f6);
+            border-radius: 9999px;
+            transition: width 0.5s ease-in-out;
+        }
+        .comparison-metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .comparison-metric .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .comparison-metric .change {
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col items-center p-6 min-h-screen">
+    <div class="container max-w-6xl mx-auto space-y-8">
+
+        <!-- Header and Motivational Quote Section -->
+        <header class="flex justify-between items-center w-full px-4">
+            <h1 class="text-4xl font-extrabold text-blue-800 drop-shadow-lg animate-pulse">
+                Weight Journey{% if profile and profile.name %}: {{ profile.name }}{% endif %}
+            </h1>
+            <a href="{{ url_for('profile_settings') }}" class="text-blue-600 hover:text-blue-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.3-.853-3.14-.047-3.207 1.625-.07.359.074.717.284 1.005a1.532 1.532 0 01-.587 2.377c-1.56.38-1.56 2.6 0 2.98a1.532 1.532 0 01.587 2.377c-.21.288-.354.646-.284 1.005.067 1.672 1.907 2.478 3.207 1.625a1.532 1.532 0 012.286.948c.38 1.56 2.6 1.56 2.98 0a1.532 1.532 0 012.286-.948c1.3.853 3.14.047 3.207-1.625.07-.359-.074-.717-.284-1.005a1.532 1.532 0 01.587-2.377c1.56-.38-1.56-2.6 0-2.98a1.532 1.532 0 01-.587-2.377c.21-.288.354-.646.284-1.005-.067-1.672-1.907-2.478-3.207-1.625a1.532 1.532 0 01-2.286-.948zM10 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clip-rule="evenodd" />
+                </svg>
+            </a>
+        </header>
+
+        <!-- Profile Setup or Dashboard -->
+        {% if not profile_exists %}
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 card">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-700">Let's Get Started!</h2>
+            <p class="text-center text-gray-500 mb-8">Enter your details to begin your tracking journey.</p>
+            <form action="{{ url_for('set_profile') }}" method="post" class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                        <input type="text" name="name" id="name" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                    </div>
+                    <div>
+                        <label for="height_feet" class="block text-sm font-semibold text-gray-700 mb-1">Height (feet)</label>
+                        <input type="number" name="height_feet" id="height_feet" min="0" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                    </div>
+                    <div>
+                        <label for="height_inches" class="block text-sm font-semibold text-gray-700 mb-1">Height (inches)</label>
+                        <input type="number" name="height_inches" id="height_inches" min="0" max="11" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                    </div>
+                    <div>
+                        <label for="starting_weight" class="block text-sm font-semibold text-gray-700 mb-1">Starting Weight (kg)</label>
+                        <input type="number" step="0.1" name="starting_weight" id="starting_weight" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                    </div>
+                    <div>
+                        <label for="goal_weight" class="block text-sm font-semibold text-gray-700 mb-1">Goal Weight (kg)</label>
+                        <input type="number" step="0.1" name="goal_weight" id="goal_weight" required
+                               class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                    </div>
+                </div>
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
+                    Save Profile
+                </button>
+            </form>
+        </div>
+        {% else %}
+        
+        <div class="text-center space-y-4">
+            {% if witty_quote %}
+            <div id="witty-quote-box" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg shadow-md animate-fade-in">
+                <p class="italic font-semibold">"{{ witty_quote }}"</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Achievement Banner & Milestone Celebration -->
+        {% if achievement_message %}
+        <div class="bg-gradient-to-r from-green-400 to-green-600 text-white p-6 rounded-2xl shadow-xl text-center animate-pulse card">
+            <h2 class="text-3xl font-extrabold">{{ achievement_message }}</h2>
+        </div>
+        {% elif milestone_message %}
+        <div class="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white p-6 rounded-2xl shadow-xl text-center animate-bounce card">
+            <h2 class="text-3xl font-extrabold">🎉 Milestone Reached! 🎉</h2>
+            <p class="mt-2 text-xl">{{ milestone_message }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Add Weight Form (Single Line) -->
+        <div class="bg-white p-6 rounded-2xl shadow-xl card">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Log New Weight</h2>
+            <form action="{{ url_for('add_weight') }}" method="post" class="flex flex-col md:flex-row items-center gap-4">
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="date" class="sr-only">Date</label>
+                    <input type="date" name="date" id="date" value="{{ now.strftime('%Y-%m-%d') }}" required
+                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                </div>
+                <div class="flex-grow w-full md:w-auto">
+                    <label for="weight" class="sr-only">Weight (kg)</label>
+                    <input type="number" step="0.1" name="weight" id="weight" required placeholder="Weight (kg)"
+                           class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border-2 transition-colors">
+                </div>
+                <button type="submit"
+                        class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
+                    Add Entry
+                </button>
+            </form>
+        </div>
+
+        <!-- Goal Progress Bar -->
+        {% set total_loss = starting_weight - goal_weight if starting_weight and goal_weight and starting_weight > goal_weight else 0 %}
+        {% set current_loss = starting_weight - current_weight if starting_weight and current_weight else 0 %}
+        {% set progress_percentage = (current_loss / total_loss * 100) if total_loss > 0 else 0 %}
+        {% set progress_percentage = 100 if progress_percentage > 100 else progress_percentage %}
+
+        <div class="bg-white p-6 rounded-2xl shadow-xl card relative overflow-hidden">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700 text-center">Your Goal Progress</h2>
+            <div class="progress-bar relative">
+                <div class="progress-fill" style="width: {{ progress_percentage }}%;"></div>
+                <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-sm md:text-lg">
+                    {{ "%.0f"|format(progress_percentage) }}% Completed
+                </div>
+            </div>
+            <div class="mt-4 flex justify-between w-full">
+                <span class="text-sm font-semibold text-gray-500">Start: {{ starting_weight }} kg</span>
+                <span class="text-sm font-semibold text-gray-500">Goal: {{ goal_weight }} kg</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            <!-- Current Weight -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl text-center border-t-4 border-blue-500 card">
+                <p class="text-sm uppercase tracking-wider font-semibold text-gray-500">Current Weight</p>
+                <p class="text-4xl font-extrabold mt-2 text-blue-600">{{ "%.1f"|format(current_weight) }} kg</p>
+            </div>
+            <!-- BMI -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl text-center border-t-4 border-purple-500 card">
+                <p class="text-sm uppercase tracking-wider font-semibold text-gray-500">BMI</p>
+                <p class="text-4xl font-extrabold mt-2 text-purple-600">{{ "%.2f"|format(bmi) }}   <span class="ml-2 font-bold" style="color: {{ bmi_category.color }}">
+    ({{ bmi_category.category }})
+  </span>
+  </p>
+            </div>
+            <!-- Total Loss -->
+            {% set diff = starting_weight - current_weight %}
+            <div class="p-6 rounded-2xl shadow-xl text-center border-t-4 card 
+                        {% if diff > 0 %} bg-gradient-to-br from-green-300 to-green-500 text-white border-green-700
+                        {% elif diff < 0 %} bg-gradient-to-br from-orange-300 to-orange-500 text-white border-orange-700
+                        {% else %} bg-white border-gray-200 {% endif %}">
+                <p class="text-sm uppercase tracking-wider font-semibold {% if diff != 0 %} text-white {% else %} text-gray-500 {% endif %}">Total Loss</p>
+                <p class="text-4xl font-extrabold mt-2 {% if diff != 0 %} text-white {% else %} text-green-600 {% endif %}">
+                    {% if diff is none %} N/A {% else %} {{ "+%.1f"|format(diff) if diff >= 0 else "%.1f"|format(diff) }} kg {% endif %}
+                </p>
+            </div>
+            <!-- Last 7 Days Change -->
+            {% set change_7_days = change_7_days %}
+            <div class="p-6 rounded-2xl shadow-xl text-center border-t-4 card 
+                        {% if change_7_days is not none and change_7_days < 0 %} bg-gradient-to-br from-green-300 to-green-500 text-white border-green-700
+                        {% elif change_7_days is not none and change_7_days > 0 %} bg-gradient-to-br from-orange-300 to-orange-500 text-white border-orange-700
+                        {% else %} bg-white border-gray-200 {% endif %}">
+                <p class="text-sm uppercase tracking-wider font-semibold {% if change_7_days is not none and change_7_days != 0 %} text-white {% else %} text-gray-500 {% endif %}">Last 7 Days</p>
+                <p class="text-4xl font-extrabold mt-2 {% if change_7_days is not none and change_7_days != 0 %} text-white {% else %} text-green-600 {% endif %}">
+                    {% if change_7_days is none %} N/A {% else %} {{ "%.1f"|format(change_7_days) if change_7_days < 0 else "+%.1f"|format(change_7_days) }} kg {% endif %}
+                </p>
+            </div>
+            <!-- Last 30 Days Change -->
+            {% set change_30_days = change_30_days %}
+            <div class="p-6 rounded-2xl shadow-xl text-center border-t-4 card 
+                        {% if change_30_days is not none and change_30_days < 0 %} bg-gradient-to-br from-green-300 to-green-500 text-white border-green-700
+                        {% elif change_30_days is not none and change_30_days > 0 %} bg-gradient-to-br from-orange-300 to-orange-500 text-white border-orange-700
+                        {% else %} bg-white border-gray-200 {% endif %}">
+                <p class="text-sm uppercase tracking-wider font-semibold {% if change_30_days is not none and change_30_days != 0 %} text-white {% else %} text-gray-500 {% endif %}">Last 30 Days</p>
+                <p class="text-4xl font-extrabold mt-2 {% if change_30_days is not none and change_30_days != 0 %} text-white {% else %} text-green-600 {% endif %}">
+                    {% if change_30_days is none %} N/A {% else %} {{ "%.1f"|format(change_30_days) if change_30_days < 0 else "+%.1f"|format(change_30_days) }} kg {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Weekly & Monthly Comparison Card -->
+        <div class="bg-white p-6 rounded-2xl shadow-xl card">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Performance Comparison</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Weekly Comparison -->
+                <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-bold mb-3 text-blue-700">Weekly Performance</h3>
+                    <div class="space-y-3" id="weekly-comparison">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+                <!-- Monthly Comparison -->
+                <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
+                    <h3 class="text-xl font-bold mb-3 text-blue-700">Monthly Performance</h3>
+                    <div class="space-y-3" id="monthly-comparison">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievement Carousel -->
+        <div class="bg-white p-6 rounded-2xl shadow-xl card overflow-hidden relative">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Your Achievements</h2>
+            <div class="flex items-center justify-between">
+                <button onclick="showPrevAchievement()" class="text-gray-500 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <div id="achievement-carousel" class="flex-grow overflow-hidden relative">
+                    <div id="achievements-container" class="achievement-container">
+                        {% for achievement in achievements %}
+                        <div class="achievement-card p-2 text-center">
+                            <div class="p-4 rounded-xl shadow-inner border border-gray-200 text-center transition-transform hover:scale-105
+                                        {% if achievement.unlocked %} bg-green-50 {% else %} bg-gray-50 opacity-50 grayscale {% endif %}">
+                                <div class="text-5xl mb-2">{{ achievement.icon }}</div>
+                                <p class="font-bold text-gray-700 text-sm">{{ achievement.name }}</p>
+                                <p class="text-xs text-gray-500 mt-1">{{ achievement.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button onclick="showNextAchievement()" class="text-gray-500 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Upcoming Achievements -->
+        <div class="bg-white p-6 rounded-2xl shadow-xl card">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700">Upcoming Achievements</h2>
+            <div id="upcoming-achievements" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+
+
+        <!-- Chart Filter Buttons -->
+        <div class="flex justify-center space-x-4 mb-4">
+            <button id="filterAllTime" class="px-6 py-3 font-bold rounded-full shadow-lg filter-btn active">All Time</button>
+            <button id="filter30Days" class="px-6 py-3 font-bold rounded-full shadow-lg filter-btn">Last 30 Days</button>
+            <button id="filter7Days" class="px-6 py-3 font-bold rounded-full shadow-lg filter-btn">Last 7 Days</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Weight Trend Chart -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">Weight Trend</h2>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Trend vs. Goal Chart -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-700">Trend vs. Goal</h2>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+		
+		
+		<!-- Insert this block BELOW your existing chart canvas or chart container -->
+<div class="max-w-4xl w-full overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-300 p-4 mt-8">
+    <h2 class="text-2xl font-semibold mb-4 text-blue-700">Weight Entries & Stats</h2>
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-blue-100">
+            <tr>
+                <th class="px-4 py-2 text-left text-sm font-semibold">Date</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold">Weight (kg)</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold">Change (kg)</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold">7-Day Avg</th>
+                <th class="px-4 py-2 text-left text-sm font-semibold">30-Day Avg</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for entry in weights %}
+            <tr>
+                <td class="px-4 py-2 whitespace-nowrap">{{ entry.date }}</td>
+                <td class="px-4 py-2 whitespace-nowrap">{{ entry.weight }}</td>
+                <td class="px-4 py-2 whitespace-nowrap">
+                    {% if entry.change is not none %}
+                        {% if entry.change > 0 %}
+                            <span class="text-red-600">+{{ '%.2f'|format(entry.change) }}</span>
+                        {% elif entry.change < 0 %}
+                            <span class="text-green-600">{{ '%.2f'|format(entry.change) }}</span>
+                        {% else %}
+                            0.00
+                        {% endif %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap">{{ entry.avg_7 }}</td>
+                <td class="px-4 py-2 whitespace-nowrap">{{ entry.avg_30 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+        {% endif %}
+    </div>
+
+    <!-- Chart.js and JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const originalChartLabels = JSON.parse({{ chart_labels | tojson | safe }});
+        const originalChartData = JSON.parse({{ chart_data | tojson | safe }});
+        const goalWeight = {{ goal_weight | tojson }};
+
+        let trendChart;
+        let trendGoalChart;
+
+        let currentAchievementIndex = 0;
+        const achievementsContainer = document.getElementById('achievements-container');
+        const achievementCarousel = document.getElementById('achievement-carousel');
+        const achievements = achievementsContainer ? Array.from(achievementsContainer.children) : [];
+
+        function showAchievement(index) {
+            if (achievements.length === 0) return;
+            const achievementsPerView = 5;
+            const totalPages = Math.ceil(achievements.length / achievementsPerView);
+
+            // Calculate current page
+            let currentPage = Math.floor(index / achievementsPerView);
+
+            if (currentPage >= totalPages) {
+                currentPage = 0;
+            } else if (currentPage < 0) {
+                currentPage = totalPages - 1;
+            }
+
+            currentAchievementIndex = currentPage * achievementsPerView;
+            const offset = -currentPage * achievementCarousel.offsetWidth;
+            achievementsContainer.style.transform = `translateX(${offset}px)`;
+        }
+
+        function showNextAchievement() {
+            showAchievement(currentAchievementIndex + 5);
+        }
+
+        function showPrevAchievement() {
+            showAchievement(currentAchievementIndex - 5);
+        }
+
+        function getMovingAverageData(data, windowSize) {
+            const result = [];
+            for (let i = 0; i < data.length; i++) {
+                if (i < windowSize - 1) {
+                    result.push(null);
+                } else {
+                    const sum = data.slice(i - windowSize + 1, i + 1).reduce((a, b) => a + b, 0);
+                    result.push(sum / windowSize);
+                }
+            }
+            return result;
+        }
+
+        function generateProjection(data, daysToProject) {
+            if (data.length < 2) {
+                return { labels: [], values: [] };
+            }
+
+            const n = data.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            const dates = data.map(d => new Date(d.date));
+            const startTimestamp = dates[0].getTime();
+
+            const xValues = dates.map(d => (d.getTime() - startTimestamp) / (1000 * 60 * 60 * 24));
+            const yValues = data.map(d => d.weight);
+
+            for (let i = 0; i < n; i++) {
+                sumX += xValues[i];
+                sumY += yValues[i];
+                sumXY += xValues[i] * yValues[i];
+                sumXX += xValues[i] * xValues[i];
+            }
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+
+            const projectionLabels = [];
+            const projectionValues = [];
+            let lastDate = dates[dates.length - 1];
+
+            for (let i = 1; i <= daysToProject; i++) {
+                const projectedDate = new Date(lastDate);
+                projectedDate.setDate(projectedDate.getDate() + i);
+                const projectedX = (projectedDate.getTime() - startTimestamp) / (1000 * 60 * 60 * 24);
+                const projectedY = slope * projectedX + intercept;
+
+                projectionLabels.push(projectedDate.toISOString().split('T')[0]);
+                projectionValues.push(projectedY);
+            }
+            return { labels: projectionLabels, values: projectionValues };
+        }
+
+        function createCharts(labels, data, projectionLabels, projectionValues) {
+            if (data.length === 0) return;
+
+            if (trendChart) trendChart.destroy();
+            if (trendGoalChart) trendGoalChart.destroy();
+            
+            const trendCtx = document.getElementById('weightChart').getContext('2d');
+            const trendGradient = trendCtx.createLinearGradient(0, 0, 0, 400);
+            trendGradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            trendGradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: labels.concat(projectionLabels),
+                    datasets: [{
+                        label: 'Recorded Weight (kg)',
+                        data: data.concat(Array(projectionLabels.length).fill(null)),
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: trendGradient,
+                        fill: 'origin',
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                    },
+                    {
+                        label: 'Projected Weight',
+                        data: Array(labels.length).fill(null).concat(projectionValues),
+                        borderColor: 'rgb(249, 115, 22)',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Weight (kg)' } }
+                    }
+                }
+            });
+
+            const trendGoalCtx = document.getElementById('trendChart').getContext('2d');
+            const movingAverageData = getMovingAverageData(data, 7);
+            const goalGradient = trendGoalCtx.createLinearGradient(0, 0, 0, 400);
+            goalGradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+            goalGradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            const goalData = goalWeight !== null ? Array(labels.length).fill(goalWeight) : [];
+
+            trendGoalChart = new Chart(trendGoalCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '7-Day Average',
+                        data: movingAverageData,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: goalGradient,
+                        fill: 'origin',
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                    },
+                    {
+                        label: 'Goal Weight',
+                        data: goalData,
+                        borderColor: 'rgb(220, 38, 38)',
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Date' } },
+                        y: { title: { display: true, text: 'Weight (kg)' } }
+                    }
+                }
+            });
+        }
+
+        function filterData(timeframe, element) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (element) {
+                element.classList.add('active');
+            }
+
+            let labels = originalChartLabels;
+            let data = originalChartData.map((weight, index) => ({ date: labels[index], weight: weight }));
+
+            if (timeframe > 0) {
+                data = data.slice(-timeframe);
+                labels = labels.slice(-timeframe);
+            }
+            
+            let projectionDays = 7;
+            if (timeframe === 30) {
+                projectionDays = 30;
+            } else if (timeframe === 7) {
+                projectionDays = 7;
+            } else if (timeframe === 0) {
+                projectionDays = 30;
+            }
+
+            const { labels: projectionLabels, values: projectionValues } = generateProjection(data, projectionDays);
+            
+            createCharts(labels, data.map(d => d.weight), projectionLabels, projectionValues);
+        }
+
+        function calculateComparisonData(labels, data) {
+            if (labels.length === 0 || data.length === 0) return;
+
+            const now = new Date();
+            const lastWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+            const prevWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+
+            const allData = labels.map((date, i) => ({ date: new Date(date), weight: data[i] }));
+            allData.sort((a, b) => a.date - b.date);
+
+            const lastWeekData = allData.filter(d => d.date >= lastWeekStart);
+            const prevWeekData = allData.filter(d => d.date >= prevWeekStart && d.date < lastWeekStart);
+            const lastMonthData = allData.filter(d => d.date >= lastMonthStart);
+            const prevMonthData = allData.filter(d => d.date >= prevMonthStart && d.date < lastMonthStart);
+
+            function getStats(dataset) {
+                if (dataset.length === 0) return { avg: null, min: null, max: null };
+                const weights = dataset.map(d => d.weight);
+                const avg = weights.reduce((sum, w) => sum + w, 0) / weights.length;
+                const min = Math.min(...weights);
+                const max = Math.max(...weights);
+                return { avg, min, max };
+            }
+
+            const lastWeekStats = getStats(lastWeekData);
+            const prevWeekStats = getStats(prevWeekData);
+            const lastMonthStats = getStats(lastMonthData);
+            const prevMonthStats = getStats(prevMonthData);
+
+            function renderComparison(containerId, currentStats, prevStats) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                
+                function formatChange(current, previous) {
+                    if (current === null || previous === null) return { value: 'N/A', icon: '' };
+                    const change = current - previous;
+                    const icon = change < 0 ? '⬇️' : change > 0 ? '⬆️' : '➡️';
+                    const color = change < 0 ? 'text-green-600' : change > 0 ? 'text-red-600' : 'text-gray-500';
+                    const sign = change > 0 ? '+' : '';
+                    return { value: `${sign}${change.toFixed(1)} kg`, icon, color };
+                }
+
+                const avgChange = formatChange(currentStats.avg, prevStats.avg);
+                const minChange = formatChange(currentStats.min, prevStats.min);
+                const maxChange = formatChange(currentStats.max, prevStats.max);
+
+                container.innerHTML = `
+                    <div class="comparison-metric">
+                        <span>Average</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="value">${currentStats.avg !== null ? currentStats.avg.toFixed(1) + ' kg' : 'N/A'}</span>
+                            <span class="change ${avgChange.color}">${avgChange.value} ${avgChange.icon}</span>
+                        </div>
+                    </div>
+                    <div class="comparison-metric">
+                        <span>Highest</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="value">${currentStats.max !== null ? currentStats.max.toFixed(1) + ' kg' : 'N/A'}</span>
+                            <span class="change ${maxChange.color}">${maxChange.value} ${maxChange.icon}</span>
+                        </div>
+                    </div>
+                    <div class="comparison-metric">
+                        <span>Lowest</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="value">${currentStats.min !== null ? currentStats.min.toFixed(1) + ' kg' : 'N/A'}</span>
+                            <span class="change ${minChange.color}">${minChange.value} ${minChange.icon}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderComparison('weekly-comparison', lastWeekStats, prevWeekStats);
+            renderComparison('monthly-comparison', lastMonthStats, prevMonthStats);
+        }
+
+        function populateUpcomingAchievements() {
+            const upcomingContainer = document.getElementById('upcoming-achievements');
+            if (!upcomingContainer) return;
+
+            // Example data - this would ideally come from your Flask backend
+            const mockAchievements = [
+                { name: "5% Goal Reached", description: "Achieve a 5% total weight loss.", icon: "🎯", progress: 0.92 },
+                { name: "10-Day Streak", description: "Log your weight for 10 consecutive days.", icon: "🗓️", progress: 0.85 },
+                { name: "Lowest BMI Ever", description: "Record your lowest Body Mass Index.", icon: "📈", progress: 0.98 },
+                { name: "15% Goal Reached", description: "Achieve a 15% total weight loss.", icon: "🏋️", progress: 0.35 }
+            ];
+
+            const upcoming = mockAchievements.filter(a => a.progress >= 0.8 && a.progress < 1.0).slice(0, 3);
+            
+            upcomingContainer.innerHTML = '';
+            if (upcoming.length > 0) {
+                upcoming.forEach(achievement => {
+                    const card = document.createElement('div');
+                    card.className = "p-4 rounded-xl shadow-inner border-2 border-dashed border-blue-300 text-center";
+                    card.innerHTML = `
+                        <div class="text-4xl mb-2">${achievement.icon}</div>
+                        <p class="font-bold text-gray-700 text-sm mb-1">${achievement.name}</p>
+                        <p class="text-xs text-gray-500">${achievement.description}</p>
+                        <div class="relative pt-2">
+                            <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-blue-200">
+                                <div style="width: ${achievement.progress * 100}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"></div>
+                            </div>
+                            <span class="absolute right-0 top-0 text-xs text-blue-700 font-bold">${Math.round(achievement.progress * 100)}%</span>
+                        </div>
+                    `;
+                    upcomingContainer.appendChild(card);
+                });
+            } else {
+                upcomingContainer.innerHTML = `<p class="text-center text-gray-500 col-span-3">No upcoming achievements to display. Keep logging to earn more!</p>`;
+            }
+        }
+
+        window.onload = function () {
+            // Only try to initialize achievement carousel if there are achievements
+            if (achievements.length > 0) {
+                showAchievement(0);
+            }
+
+            document.getElementById('filterAllTime').addEventListener('click', (e) => filterData(0, e.target));
+            document.getElementById('filter30Days').addEventListener('click', (e) => filterData(30, e.target));
+            document.getElementById('filter7Days').addEventListener('click', (e) => filterData(7, e.target));
+            
+            // Initial chart render with all-time data
+            if (originalChartData.length > 0) {
+                const allTimeData = originalChartData.map((weight, index) => ({ date: originalChartLabels[index], weight: weight }));
+                const projectionDays = 30; 
+                const { labels: projectionLabels, values: projectionValues } = generateProjection(allTimeData, projectionDays);
+                createCharts(originalChartLabels, originalChartData, projectionLabels, projectionValues);
+            }
+
+            // Populate the new comparison area
+            calculateComparisonData(originalChartLabels, originalChartData);
+
+            // Populate the upcoming achievements section
+            populateUpcomingAchievements();
+        }
+
+        // Add a resize listener to re-calculate carousel width for responsiveness
+        window.addEventListener('resize', () => showAchievement(currentAchievementIndex));
+    </script>
+</body>
+</html>
+
