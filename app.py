@@ -322,5 +322,8 @@ def profile_settings():
 
     return render_template('profile_settings.html', profile=profile_data)
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5050)
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5050))
+    app.run(host="0.0.0.0", port=port)
+
