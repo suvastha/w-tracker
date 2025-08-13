@@ -200,6 +200,16 @@ def weekend_index(dt: date) -> int:
     # Monday=0 ... Sunday=6 ; weekend are 5,6
     return dt.weekday()
 
+def ensure_date(d):
+    if isinstance(d, str):
+        return datetime.fromisoformat(d).date()
+    elif isinstance(d, datetime):
+        return d.date()
+    elif isinstance(d, date):
+        return d
+    else:
+        raise TypeError(f"Invalid date type: {type(d)}")
+
 def achievements_for(now_iso: str,
                      profile: Dict[str, Any],
                      weights_asc: List[Tuple[str,float]],
@@ -213,7 +223,8 @@ def achievements_for(now_iso: str,
     newly = []
     if not weights_asc:
         return newly
-    dset = [datetime.fromisoformat(d).date() for d, _ in weights_asc]
+    #dset = [datetime.fromisoformat(d).date() for d, _ in weights_asc]
+    dset = [ensure_date(d) for d, _ in weights_asc]
     wvals = [w for _, w in weights_asc]
     total_logs = len(weights_asc)
     # 1) first_entry
