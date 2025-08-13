@@ -38,6 +38,26 @@ QUOTES = [
     "Gaps happen. Come back happens bigger.",
 ]
 
+def to_date(d):
+    """
+    Convert input to datetime.date.
+    Supports:
+      - str "YYYY-MM-DD"
+      - datetime.datetime
+      - datetime.date
+      - dict with 'date' key (from JSON fallback)
+    """
+    if isinstance(d, dict) and 'date' in d:
+        d = d['date']
+    if isinstance(d, str):
+        return datetime.fromisoformat(d).date()
+    elif isinstance(d, datetime):
+        return d.date()
+    elif isinstance(d, date):
+        return d
+    else:
+        raise TypeError(f"Invalid date type: {type(d)}")
+
 def pick_daily_quote(quotes: List[str], today_iso: str) -> str:
     # deterministic pick for the day
     idx = (sum(ord(c) for c in today_iso) + len(quotes)) % len(quotes)
@@ -91,7 +111,8 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
         return 0, 0
     dset = set(dates_asc)
     # current streak ending at latest date
-    latest = datetime.fromisoformat(dates_asc[-1]).date()
+    dates_sorted = sorted([to_date(d) for d in dates_asc])
+    latest = dates_sorted(dates_asc[-1]).date()
     cur = 0
     while (latest - timedelta(days=cur)).isoformat() in dset:
         cur += 1
@@ -99,10 +120,10 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
     best = 0
     visited = set()
     for ds in dset:
-        if (datetime.fromisoformat(ds).date() - timedelta(days=1)).isoformat() not in dset:
+        if (dates_sorted(ds).date() - timedelta(days=1)).isoformat() not in dset:
             # start of a streak
             run = 1
-            next_day = datetime.fromisoformat(ds).date() + timedelta(days=1)
+            next_day = dates_sorted(ds).date() + timedelta(days=1)
             while next_day.isoformat() in dset:
                 run += 1
                 next_day += timedelta(days=1)
@@ -115,6 +136,7 @@ def linear_regression_eta(points_asc: List[Tuple[str, float]], goal_weight: floa
     points_asc: [(YYYY-MM-DD, weight)] last up to 30 days, asc
     Returns dict with slope, intercept, eta_date or message.
     """
+    dates_sorted = sorted([to_date(d) for d in dates_asc])
     if len(points_asc) < 2:
         return {"slope": 0, "intercept": points_asc[-1][1] if points_asc else None, "eta": None, "message": "Need more data"}
     # x as day index starting at 0
@@ -132,7 +154,7 @@ def linear_regression_eta(points_asc: List[Tuple[str, float]], goal_weight: floa
         return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
     k = (goal_weight - intercept) / slope
     # ETA only sensible if k is after last point and slope moves toward goal
-    last_day = datetime.fromisoformat(points_asc[-1][0]).date()
+    last_day = dates_sorted(points_asc[-1][0]).date()
     towards_goal = (goal_weight < ys[-1] and slope < 0) or (goal_weight > ys[-1] and slope > 0)
     if not towards_goal or k < len(xs) - 1:
         return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
@@ -200,17 +222,6 @@ def weekend_index(dt: date) -> int:
     # Monday=0 ... Sunday=6 ; weekend are 5,6
     return dt.weekday()
 
-def ensure_date(d):
-    """Ensure d is a datetime.date object, works for str, date, datetime."""
-    if isinstance(d, str):
-        return datetime.fromisoformat(d).date()
-    elif isinstance(d, datetime):
-        return d.date()
-    elif isinstance(d, date):
-        return d
-    else:
-        raise TypeError(f"Invalid date type: {type(d)}")
-
 def achievements_for(now_iso: str,
                      profile: Dict[str, Any],
                      weights_asc: List[Tuple[str,float]],
@@ -230,7 +241,7 @@ def achievements_for(now_iso: str,
     for i, item in enumerate(weights_asc):
         print(i, item, type(item), [type(x) for x in item])
     
-    dset = [ensure_date(d) for d, _ in weights_asc]
+    dset = [to_date(d) for d, _ in weights_asc]
     wvals = [w for _, w in weights_asc]
     total_logs = len(weights_asc)
     # 1) first_entry
