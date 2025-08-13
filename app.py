@@ -78,7 +78,7 @@ def create_app() -> Flask:
         app.config["SECRET_KEY"] = os.urandom(24)
 
     # Storage selection
-    adapter, mode = _pick_storage(app.config["CONFIG"])
+    adapter, mode = _pick_storage(app.config)
     app.config["STORAGE_MODE"] = mode
     app.config["STORAGE"] = adapter
 
