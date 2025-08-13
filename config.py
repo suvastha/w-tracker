@@ -1,39 +1,35 @@
-# /weighty/config.py
 import os
-from dataclasses import dataclass
+import json
 
-@dataclass
 class Config:
-    DATABASE_URL: str
-    SECRET_KEY: str
-    PORT: int
-    WEIGHTY_STORAGE: str
-    DATA_DIR: str
-    DATA_PATH: str
+    def __init__(self):
+        # Load environment variables with sensible defaults
+        self.DATABASE_URL = os.environ.get(
+            "DATABASE_URL",
+            "sqlite:///weight_tracker.db"  # Local fallback for dev
+        )
+        self.SECRET_KEY = os.environ.get("SECRET_KEY", "supersecretkey")
+        self.PORT = int(os.environ.get("PORT", 5000))
 
-    @staticmethod
-    def from_env():
-        root = os.path.dirname(os.path.abspath(__file__))
-        data_dir = os.path.join(root, "data")
-        return Config(
-            DATABASE_URL=os.environ.get("DATABASE_URL", ""),
-            SECRET_KEY=os.environ.get("SECRET_KEY", ""),
-            PORT=int(os.environ.get("PORT", "10000") or "10000"),
-            WEIGHTY_STORAGE=os.environ.get("WEIGHTY_STORAGE", "auto"),
-            DATA_DIR=data_dir,
-            DATA_PATH=os.path.join(data_dir, "data.json"),
+        # Storage type: 'postgres' or 'json'
+        self.WEIGHTY_STORAGE = os.environ.get("WEIGHTY_STORAGE", "json")
+
+        # Data directory & path for JSON fallback
+        self.DATA_DIR = os.environ.get("DATA_DIR", os.path.dirname(__file__))
+        self.DATA_PATH = os.environ.get(
+            "DATA_PATH", os.path.join(self.DATA_DIR, "weight_data.json")
         )
 
-def __call__():
-    # convenience
-    return Config.from_env()
+    @staticmethod
+    def load_json_data(path):
+        """Load weight data from JSON file."""
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
+        return []
 
-class FlaskConfigAdaptor(dict):
-    """Expose dataclass instance but keep under key 'CONFIG' for Flask."""
-    def __init__(self):
-        super().__init__()
-        self["CONFIG"] = Config.from_env()
-
-# Usage in app.py: app.config.from_object(Config())
-def get_config():
-    return FlaskConfigAdaptor()
+    @staticmethod
+    def save_json_data(path, data):
+        """Save weight data to JSON file."""
+        with open(path, "w") as f:
+            json.dump(data, f, indent=4)
