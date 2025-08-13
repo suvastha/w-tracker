@@ -112,7 +112,7 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
     dset = set(dates_asc)
     # current streak ending at latest date
     dates_sorted = sorted([to_date(d) for d in dates_asc])
-    latest = dates_sorted(dates_asc[-1]).date()
+    latest = dates_sorted[-1].date()
     cur = 0
     while (latest - timedelta(days=cur)).isoformat() in dset:
         cur += 1
@@ -120,10 +120,10 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
     best = 0
     visited = set()
     for ds in dset:
-        if (dates_sorted(ds).date() - timedelta(days=1)).isoformat() not in dset:
+        if (dates_sorted[ds].date() - timedelta(days=1)).isoformat() not in dset:
             # start of a streak
             run = 1
-            next_day = dates_sorted(ds).date() + timedelta(days=1)
+            next_day = dates_sorted[ds].date() + timedelta(days=1)
             while next_day.isoformat() in dset:
                 run += 1
                 next_day += timedelta(days=1)
