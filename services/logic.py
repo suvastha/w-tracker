@@ -109,26 +109,27 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
     """
     if not dates_asc:
         return 0, 0
-    dset = set(dates_asc)
-    # current streak ending at latest date
-    dates_sorted = sorted([to_date(d) for d in dates_asc])
+    
+    dates_sorted = sorted(set(dates_asc))  # remove duplicates + sort
+    dset = {d.isoformat() for d in dates_sorted}
+    
+    # current streak
     latest = dates_sorted[-1]
-    cur = 0
-    while (latest - timedelta(days=cur)).isoformat() in dset:
-        cur += 1
-    # best streak
-    best = 0
-    visited = set()
-    for ds in dset:
-        if (dates_sorted[ds].date() - timedelta(days=1)).isoformat() not in dset:
-            # start of a streak
-            run = 1
-            next_day = dates_sorted[ds] + timedelta(days=1)
-            while next_day.isoformat() in dset:
-                run += 1
-                next_day += timedelta(days=1)
-            best = max(best, run)
-    return cur, best
+    streak_current = 1
+    while (latest - timedelta(days=1)).isoformat() in dset:
+        latest -= timedelta(days=1)
+        streak_current += 1
+        
+   # best streak
+    streak_best = 1
+    for d in dates_sorted:
+        current = 1
+        while (d - timedelta(days=1)).isoformat() in dset:
+            d -= timedelta(days=1)
+            current += 1
+        streak_best = max(streak_best, current)
+        
+    return streak_current, streak_best
 
 # --- regression projection ---
 def linear_regression_eta(points_asc: List[Tuple[str, float]], goal_weight: float) -> Dict[str, Any]:
