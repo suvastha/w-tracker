@@ -35,13 +35,13 @@ def _pick_storage(config: Config):
     Select storage backend based on env + availability.
     Returns (adapter_instance, mode_str)
     """
-    storage_mode = (config.WEIGHTY_STORAGE or "auto").lower()
-    db_url = config.DATABASE_URL
+    storage_mode = (config["WEIGHTY_STORAGE"] or "auto").lower()
+    db_url = config["DATABASE_URL"]
 
     # Force JSON (dev convenience)
     if storage_mode == "json":
-        ensure_data_dir(config.DATA_DIR)
-        return JSONAdapter(config.DATA_PATH), "json"
+        ensure_data_dir(config["DATA_DIR"])
+        return JSONAdapter(config["DATA_PATH"]), "json"
 
     # Force PG if asked
     if storage_mode == "pgsql":
@@ -54,8 +54,8 @@ def _pick_storage(config: Config):
             # because the product promise is "user shouldn't feel an error".
             # We log a warning and transparently switch to JSON.
             print(f"[Weighty] WARNING: PG forced but unavailable: {e}. Falling back to JSON.")
-            ensure_data_dir(config.DATA_DIR)
-            return JSONAdapter(config.DATA_PATH), "json"
+            ensure_data_dir(config["DATA_DIR"])
+            return JSONAdapter(config["DATA_PATH"]), "json"
 
     # AUTO mode: try PG first, then JSON
     if db_url:
