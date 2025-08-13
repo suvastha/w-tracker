@@ -134,34 +134,67 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
 # --- regression projection ---
 def linear_regression_eta(points_asc: List[Tuple[str, float]], goal_weight: float) -> Dict[str, Any]:
     """
-    points_asc: [(YYYY-MM-DD, weight)] last up to 30 days, asc
-    Returns dict with slope, intercept, eta_date or message.
+    points_asc: [(YYYY-MM-DD, weight)] last up to 30 days, asc order
+    goal_weight: target weight to reach
+    Returns: dict with slope, intercept, eta_date or message
     """
-    dates_sorted = sorted([to_date(d) for d in dates_asc])
     if len(points_asc) < 2:
-        return {"slope": 0, "intercept": points_asc[-1][1] if points_asc else None, "eta": None, "message": "Need more data"}
+        return {
+            "slope": 0,
+            "intercept": points_asc[-1][1] if points_asc else None,
+            "eta": None,
+            "message": "Need more data"
+        }
+
+    # Convert dates to datetime.date objects
+    dates_sorted = [to_date(d) for d, _ in points_asc]
+
     # x as day index starting at 0
     xs = list(range(len(points_asc)))
     ys = [w for _, w in points_asc]
     n = len(xs)
+
     x_mean = sum(xs) / n
     y_mean = sum(ys) / n
+
     num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
     den = sum((x - x_mean) ** 2 for x in xs) or 1
+
     slope = num / den
     intercept = y_mean - slope * x_mean
-    # Solve for day k where y = goal_weight => k = (goal - b)/m
-    if slope == 0:
-        return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
-    k = (goal_weight - intercept) / slope
-    # ETA only sensible if k is after last point and slope moves toward goal
-    last_day = dates_sorted(points_asc[-1][0])
-    towards_goal = (goal_weight < ys[-1] and slope < 0) or (goal_weight > ys[-1] and slope > 0)
-    if not towards_goal or k < len(xs) - 1:
-        return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
-    eta = last_day + timedelta(days=round(k - (len(xs) - 1)))
-    return {"slope": round(slope, 4), "intercept": round(intercept, 2), "eta": eta.isoformat(), "message": None}
 
+    if slope == 0:
+        return {
+            "slope": slope,
+            "intercept": round(intercept, 2),
+            "eta": None,
+            "message": "Trend needs a nudge 😉"
+        }
+
+    # Solve for day k where y = goal_weight => k = (goal - b)/m
+    k = (goal_weight - intercept) / slope
+    last_day = dates_sorted[-1]
+
+    # Check if trend is moving toward goal
+    towards_goal = ((goal_weight < ys[-1] and slope < 0) or
+                    (goal_weight > ys[-1] and slope > 0))
+
+    if not towards_goal or k < len(xs) - 1:
+        return {
+            "slope": round(slope, 4),
+            "intercept": round(intercept, 2),
+            "eta": None,
+            "message": "Trend needs a nudge 😉"
+        }
+
+    eta = last_day + timedelta(days=round(k - (len(xs) - 1)))
+    return {
+        "slope": round(slope, 4),
+        "intercept": round(intercept, 2),
+        "eta": eta.isoformat(),
+        "message": None
+    }
+    
 # --- achievements engine ---
 ACHIEVEMENTS = [
     ("first_entry", "First entry", "🏁", "Log your first weight."),
