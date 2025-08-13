@@ -201,6 +201,7 @@ def weekend_index(dt: date) -> int:
     return dt.weekday()
 
 def ensure_date(d):
+    """Ensure d is a datetime.date object, works for str, date, datetime."""
     if isinstance(d, str):
         return datetime.fromisoformat(d).date()
     elif isinstance(d, datetime):
@@ -224,6 +225,11 @@ def achievements_for(now_iso: str,
     if not weights_asc:
         return newly
     #dset = [datetime.fromisoformat(d).date() for d, _ in weights_asc]
+    
+    print("weights_asc:", weights_asc, type(weights_asc))
+    for i, item in enumerate(weights_asc):
+        print(i, item, type(item), [type(x) for x in item])
+    
     dset = [ensure_date(d) for d, _ in weights_asc]
     wvals = [w for _, w in weights_asc]
     total_logs = len(weights_asc)
