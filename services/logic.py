@@ -112,7 +112,7 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
     dset = set(dates_asc)
     # current streak ending at latest date
     dates_sorted = sorted([to_date(d) for d in dates_asc])
-    latest = dates_sorted[-1].date()
+    latest = dates_sorted[-1]
     cur = 0
     while (latest - timedelta(days=cur)).isoformat() in dset:
         cur += 1
@@ -123,7 +123,7 @@ def compute_streaks(dates_asc: List[str]) -> Tuple[int, int]:
         if (dates_sorted[ds].date() - timedelta(days=1)).isoformat() not in dset:
             # start of a streak
             run = 1
-            next_day = dates_sorted[ds].date() + timedelta(days=1)
+            next_day = dates_sorted[ds] + timedelta(days=1)
             while next_day.isoformat() in dset:
                 run += 1
                 next_day += timedelta(days=1)
@@ -154,7 +154,7 @@ def linear_regression_eta(points_asc: List[Tuple[str, float]], goal_weight: floa
         return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
     k = (goal_weight - intercept) / slope
     # ETA only sensible if k is after last point and slope moves toward goal
-    last_day = dates_sorted(points_asc[-1][0]).date()
+    last_day = dates_sorted(points_asc[-1][0])
     towards_goal = (goal_weight < ys[-1] and slope < 0) or (goal_weight > ys[-1] and slope > 0)
     if not towards_goal or k < len(xs) - 1:
         return {"slope": slope, "intercept": intercept, "eta": None, "message": "Trend needs a nudge 😉"}
