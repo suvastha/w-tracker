@@ -1,0 +1,62 @@
+/* /weighty/static/css/styles.css */
+
+:root { --tr: 180ms; }
+
+.btn-primary {
+  @apply px-4 py-2 rounded bg-sky-600 text-white hover:bg-sky-700 transition;
+}
+.btn-secondary {
+  @apply px-3 py-2 rounded border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition;
+}
+.input {
+  @apply w-full px-3 py-2 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900;
+}
+.form-field span { @apply block text-sm mb-1; }
+.card {
+  @apply p-3 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800;
+}
+.card-title { @apply text-xs uppercase tracking-wide opacity-70; }
+.card-value { @apply text-2xl font-semibold; }
+.section-title { @apply text-lg font-semibold mb-2; }
+.toast {
+  @apply px-3 py-2 rounded bg-emerald-600 text-white shadow;
+  animation: fadeout 4s forwards;
+}
+.toast.error { @apply bg-rose-600; }
+
+.toggle-panel { transition: all var(--tr) ease; }
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.hm-cell {
+  width: 100%;
+  padding-top: 100%;
+  position: relative;
+  border-radius: 6px;
+  border: 1px solid rgba(148,163,184,0.3);
+}
+.hm-cell.faint { background: rgba(125,211,252,0.15); }
+.hm-cell.med   { background: rgba(59,130,246,0.25); }
+.hm-cell.strong{ background: rgba(37,99,235,0.35); }
+
+@keyframes fadeout {
+  0% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Confetti minimal */
+.confetti {
+  position: fixed; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle, #34d399 8px, transparent 9px),
+                    radial-gradient(circle, #f59e0b 8px, transparent 9px),
+                    radial-gradient(circle, #60a5fa 8px, transparent 9px);
+  background-repeat: repeat;
+  background-size: 40px 40px;
+  opacity: 0; animation: pop 1s ease-out forwards;
+}
+.confetti.show { opacity: 1; }
+@keyframes pop { from {opacity: 0;} to {opacity: 1;} }

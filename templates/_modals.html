@@ -1,0 +1,21 @@
+<!-- /weighty/templates/_modals.html -->
+<div id="modalBackdrop" class="fixed inset-0 hidden items-center justify-center bg-black/40 z-40">
+  <div id="modalCard" class="bg-white dark:bg-slate-800 rounded shadow p-4 w-[95vw] max-w-md border border-slate-200 dark:border-slate-700">
+    <h3 id="modalTitle" class="font-semibold mb-3">Add weight</h3>
+    <form id="weightForm" class="space-y-3">
+      <label class="form-field">
+        <span>Date</span>
+        <input type="date" name="date" class="input" required max="{{ (namespace()|attr('today') if false else '') }}">
+      </label>
+      <label class="form-field">
+        <span>Weight (kg)</span>
+        <input type="number" step="0.1" min="20" max="400" name="weight" class="input" required>
+      </label>
+      <div class="flex items-center justify-between">
+        <button class="btn-primary" id="modalSave">Save</button>
+        <button type="button" class="btn-secondary" id="modalCancel">Cancel</button>
+      </div>
+      <input type="hidden" name="id" value="">
+    </form>
+  </div>
+</div>
