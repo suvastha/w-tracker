@@ -35,5 +35,5 @@ class FlaskConfigAdaptor(dict):
         self["CONFIG"] = Config.from_env()
 
 # Usage in app.py: app.config.from_object(Config())
-def Config():
+def get_config():
     return FlaskConfigAdaptor()
